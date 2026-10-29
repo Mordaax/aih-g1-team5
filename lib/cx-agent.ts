@@ -1,4 +1,6 @@
-import { GoogleAuth } from "google-auth-library";
+import { GoogleAuth, IdentityPoolClient } from "google-auth-library";
+import { getVercelOidcToken } from "@vercel/oidc";
+import { workloadIdentityOptions } from "./google-workload-identity";
 
 export const primaryLanguageLabels = [
   "English",
@@ -131,21 +133,22 @@ export async function runCxSession({
 }): Promise<RunSessionResult> {
   const { apiVersion, applicationName, applicationVersionName, deploymentName } = getCxConfig();
   const sessionName = `${applicationName}/sessions/${sessionId}`;
-  const authOptions = {
-    scopes: ["https://www.googleapis.com/auth/cloud-platform"],
-    ...(process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON
-      ? {
-          credentials: JSON.parse(
-            process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON,
-          ),
-        }
-      : {}),
-  };
   let accessToken: string | null | undefined;
 
   try {
-    const auth = new GoogleAuth(authOptions);
-    accessToken = await auth.getAccessToken();
+    const federation = workloadIdentityOptions(process.env, () => getVercelOidcToken());
+    if (federation) {
+      const result = await new IdentityPoolClient(federation).getAccessToken();
+      accessToken = result.token;
+    } else {
+      const auth = new GoogleAuth({
+        scopes: ["https://www.googleapis.com/auth/cloud-platform"],
+        ...(process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON
+          ? { credentials: JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON) }
+          : {}),
+      });
+      accessToken = await auth.getAccessToken();
+    }
   } catch (error) {
     throw new CxAgentError(
       error instanceof Error ? error.message : "Google Cloud authentication failed",
