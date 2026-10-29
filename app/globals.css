@@ -1,0 +1,90 @@
+@import "tailwindcss";
+
+:root {
+  --ink: #142a32;
+  --muted: #607378;
+  --paper: #f6f7f4;
+  --line: #dce8e4;
+  --teal: #146f71;
+  --teal-deep: #0f555a;
+  --mint: #e8f4f0;
+  --orange: #e98b4a;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-width: 320px;
+  background: var(--paper);
+}
+
+body {
+  min-height: 100vh;
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: "Segoe UI", Arial, Helvetica, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+@layer base {
+  button,
+  input,
+  textarea,
+  select {
+    font: inherit;
+  }
+}
+
+button,
+select {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+.safe-bottom {
+  padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+}
+
+::selection {
+  background: #b9e4d8;
+  color: var(--ink);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Shared finishing details for the support workspace. */
+.support-intro h1 {
+  font-family: Georgia, "Times New Roman", serif;
+  font-weight: 400;
+  text-wrap: balance;
+}
+
+textarea, input { caret-color: var(--teal); }
+
+* { scrollbar-width: thin; scrollbar-color: #b1c2bd transparent; }
+
+a:focus-visible, button:focus-visible, input:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: 3px;
+}
+
+button, a { -webkit-tap-highlight-color: #c9e5dc; }
+
+@media (max-width: 639px) {
+  .safe-bottom { padding-bottom: calc(0.75rem + env(safe-area-inset-bottom)); }
+}
