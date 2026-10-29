@@ -7,13 +7,13 @@ MDW Compass is a mobile-first Next.js chatbot frontend for migrant domestic work
 - English, Tagalog, and Bahasa Indonesia language selection.
 - An "Other languages" entry that lets a worker pass an explicit language name to the CX session without inventing frontend translations.
 - Quick-start prompts for salary rights, welfare and well-being, abuse and mistreatment, and human support.
-- Persistent CX session IDs for conversation context and a New Chat action for a fresh session.
+- Browser-saved CX session IDs, selected language, messages, and unsent drafts survive refresh. New Chat and Clear chat reset the saved conversation and start a fresh CX session.
 - Server-only Google authentication through `google-auth-library`.
 - Mobile-first responsive layout with safe-area support, expandable topic navigation, accessible emergency links, and 44px touch targets.
 - Voice recording with browser `MediaRecorder`, format detection, a 90-second/8MB limit, microphone permission handling, transcription review, editing, re-record, cancel, and send confirmation.
 - Browser `speechSynthesis` controls beside assistant messages with language-aware voice lookup, pause/resume, stop, and text fallback when a voice is unavailable.
 - Server-only MERaLiON transcription proxy at `/api/transcribe`; recordings are held in memory only for the request and are not stored by this app.
-- Input validation, a basic in-memory per-IP rate limit, request timeouts, and no chat-history persistence.
+- Input validation, a basic in-memory per-IP rate limit, request timeouts, and browser conversation persistence with a 24-hour inactivity expiry.
 - Responsive accessible UI with loading, retry, emergency information, and human-support prompts.
 
 ## Install and run locally
@@ -60,7 +60,7 @@ curl -i http://localhost:3000/api/chat \
   }'
 ```
 
-A successful response contains a `message` returned by CX Agent Studio. A `503` response means credentials or configuration are missing; a `502` response means the upstream request failed. Check the dev-server logs and confirm ADC, IAM, API access deployment IDs, and project configuration. The supplied CX deployment returned a live response during local verification. MERaLiON was not live-tested because `MERALION_API_KEY` is not configured in this workspace.
+A successful response contains a `message` returned by CX Agent Studio. A `503` response means credentials or configuration are missing; a `502` response means the upstream request failed. Check the dev-server logs and confirm ADC, IAM, API access deployment IDs, and project configuration. The supplied CX deployment returned a live response during local verification. MERaLiON was live-tested through `/api/transcribe` using a synthetic English WAV recording; the returned transcript matched the sample. Physical microphone capture and language-specific accuracy still depend on browser and provider support.
 
 ## Test voice transcription
 
@@ -90,6 +90,7 @@ If your Vercel organization cannot issue an OIDC token accepted by Google WIF, u
 ## Verification commands
 
 ```bash
+npm test
 npm run lint
 npm run typecheck
 npm run build
@@ -107,3 +108,9 @@ npm run build
 - MERaLiON transcription language coverage and accuracy vary by language, accent, and code-switching. The UI does not claim coverage that has not been configured or verified.
 - Browser TTS voice coverage is device-dependent. If a matching English, Tagalog, Bahasa Indonesia, or custom-language voice is unavailable, the text response remains available.
 - The CX API and MERaLiON API still require valid server credentials and network access; no live integration is claimed without a successful authenticated test.
+
+## Browser conversation storage
+Text messages, reviewed voice transcripts, drafts, language, and the CX session ID are stored in localStorage for 24 hours after the last activity. Audio and API keys are never stored there. Clearing chat resets local conversation data; it does not delete upstream provider records. If browser storage is blocked or full, chat continues in memory and displays a warning. Restoring a CX session ID does not extend the provider's session retention. SEA-LION translation is not added: typed messages and reviewed MERaLiON transcripts both go directly to CX in the user's selected language.
+
+## Language-first live chat
+New conversations start with a multilingual language question and selectable language names. Typing and recording unlock after CX confirms the selection. The server forwards the chosen language by name; if the deployed root agent returns its initial numbered language menu, it answers that menu once in the same CX session. The browser saves the confirmation, so existing conversations resume after refresh. New Chat resets onboarding. The live chat uses components/ui/chat-preview.tsx for avatar-and-name message rows, real message times, read-aloud controls, and reduced-motion-aware entrance animation. Cloud effects have been removed.

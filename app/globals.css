@@ -56,6 +56,15 @@ button:disabled {
   color: var(--ink);
 }
 
+@keyframes message-appear {
+  from { opacity: 0.35; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-message-appear {
+  animation: message-appear 220ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

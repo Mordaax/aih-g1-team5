@@ -7,6 +7,7 @@ import {
   type PreferredLanguage,
 } from "@/lib/cx-agent";
 import { checkRateLimit, getClientIdentifier } from "@/lib/rate-limit";
+import { selectCxLanguage } from "@/lib/language-onboarding";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -18,6 +19,7 @@ type ChatRequestBody = {
   message?: unknown;
   sessionId?: unknown;
   language?: unknown;
+  selectLanguage?: unknown;
 };
 
 function jsonResponse(body: Record<string, unknown>, status = 200) {
@@ -75,7 +77,9 @@ export async function POST(request: Request) {
   }
 
   try {
-    const result = await runCxSession({
+    const result = body.selectLanguage === true
+      ? await selectCxLanguage(runCxSession, { sessionId, language: language as PreferredLanguage })
+      : await runCxSession({
       message,
       sessionId,
       language: language as PreferredLanguage,
