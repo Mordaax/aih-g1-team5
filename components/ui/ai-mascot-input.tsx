@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import type { FormEventHandler, KeyboardEventHandler, RefObject } from "react";
 import { motion, useReducedMotion } from "framer-motion";
-import { ArrowUp, Compass, LoaderCircle, Mic } from "lucide-react";
+import { ArrowUp, LoaderCircle, Mic } from "lucide-react";
+import { LanguageSelect } from "@/components/ui/language-select";
 import { cn } from "@/lib/utils";
 
 export type RobotEmotion = "reading" | "thinking";
@@ -69,6 +70,8 @@ export interface AiMascotInputProps {
   isProcessing?: boolean;
   isListening?: boolean;
   language?: string;
+  onLanguageChange: (language: string) => void;
+  languageDisabled?: boolean;
   placeholder?: string;
   label?: string;
   showMascot?: boolean;
@@ -77,7 +80,7 @@ export interface AiMascotInputProps {
 
 /** The supplied mascot composer, controlled by the real CX/MERaLiON chat flow. */
 export function AiMascotInput({ value, onChange, onSubmit, onKeyDown, onRecord, textareaRef,
-  disabled = false, isProcessing = false, isListening = false, language = "English",
+  disabled = false, isProcessing = false, isListening = false, language = "", onLanguageChange, languageDisabled = false,
   placeholder = "Type your question or record a message…", label = "Write your message",
   showMascot = true, className,
 }: AiMascotInputProps) {
@@ -100,9 +103,8 @@ export function AiMascotInput({ value, onChange, onSubmit, onKeyDown, onRecord, 
           placeholder={isListening ? "Recording… stop to review your words" : isProcessing ? "Waiting for your response…" : placeholder}
           className="block max-h-36 min-h-[54px] w-full resize-none overflow-y-auto bg-transparent px-1 pb-2 text-base leading-6 text-[var(--ink)] outline-none placeholder:text-[var(--muted)] disabled:opacity-70" />
         <div className="mt-1 flex min-w-0 items-center justify-between gap-2 border-t border-zinc-100 pt-2">
-          <div className="flex min-w-0 items-center gap-1.5 rounded-xl bg-zinc-100 px-2.5 py-2 text-xs font-medium text-zinc-700">
-            <Compass aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-[var(--teal)]" />
-            <span className="truncate">{language}</span>
+          <div className="min-w-0 flex-1 sm:max-w-64">
+            <LanguageSelect value={language} onChange={onLanguageChange} disabled={languageDisabled || busy} label="Chat language" compact />
           </div>
           <div className="flex shrink-0 items-center gap-2">
             <button type="button" onClick={onRecord} disabled={disabled || busy} aria-label="Record a voice message" title="Record voice"

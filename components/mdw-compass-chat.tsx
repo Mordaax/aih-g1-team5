@@ -3,7 +3,6 @@
 import {
   ArrowUpRight,
   BadgeDollarSign,
-  Check,
   ChevronDown,
   Compass,
   HeartHandshake,
@@ -31,6 +30,7 @@ import { useEffect, useRef, useState } from "react";
 import type { FormEvent, KeyboardEvent } from "react";
 
 import { AiMascotInput, RobotAvatar } from "@/components/ui/ai-mascot-input";
+import { LanguageSelect } from "@/components/ui/language-select";
 import { ChatPreview, ChatMessageRow } from "@/components/ui/chat-preview";
 import { LANGUAGE_PROMPT, onboardingLanguages, needsLanguageSelection } from "@/lib/language-onboarding";
 
@@ -417,6 +417,7 @@ export function MdwCompassChat() {
     try {
       const responseText = await requestChat({ message: nextLanguage, sessionId: activeSessionId, language: nextLanguage, selectLanguage: true });
       if (generation !== requestGenerationRef.current) return;
+      setLanguage(nextLanguage);
       setLanguageConfirmed(true);
       if (responseText) {
         setMessages((current) => [
@@ -438,7 +439,6 @@ export function MdwCompassChat() {
 
   const handleLanguageChange = (nextLanguage: PreferredLanguage) => {
     if ((nextLanguage === language && languageConfirmed) || isBusy) return;
-    setLanguage(nextLanguage);
     setOtherLanguageOpen(false);
     setMenuOpen(false);
     void syncLanguage(nextLanguage);
@@ -601,7 +601,7 @@ export function MdwCompassChat() {
   const isBusy = !sessionReady || isLoading || voiceState === "transcribing";
 
   return (
-    <main className="min-h-[100dvh] overflow-x-hidden pb-[env(safe-area-inset-bottom)] text-[var(--ink)]">
+    <main className={`chat-app ${!languageConfirmed ? "mobile-onboarding" : ""} min-h-[100dvh] overflow-x-hidden pb-[env(safe-area-inset-bottom)] text-[var(--ink)]`}>
       <div className="mx-auto max-w-[1320px] lg:px-8 lg:pt-6">
         <header className="sticky top-0 z-30 flex items-center justify-between gap-2 sm:gap-3 border-b border-[#e4edeb]/80 bg-[var(--paper)] px-4 py-3 sm:px-6 sm:py-4 lg:static lg:border-0 lg:bg-transparent lg:px-1 lg:py-0 lg:pb-6">
           <div className="flex min-w-0 items-center gap-2 sm:gap-3"><div className="flex h-8 w-8 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-lg bg-[var(--teal-deep)] text-white"><Compass aria-hidden="true" className="h-6 w-6" strokeWidth={2.2} /></div><div className="min-w-0"><p className="truncate text-[15px] sm:text-[17px] font-bold tracking-[-0.02em]">MDW Compass</p><p className="hidden text-xs font-medium text-[var(--muted)] sm:block">Your support companion in Singapore</p></div></div>
@@ -612,14 +612,14 @@ export function MdwCompassChat() {
           </div>
         </header>
 
-        <div className="grid items-start gap-4 lg:grid-cols-[300px_minmax(0,1fr)] xl:grid-cols-[320px_minmax(0,1fr)] lg:gap-10 lg:px-1">
+        <div className="chat-workspace grid items-start gap-4 lg:grid-cols-[300px_minmax(0,1fr)] xl:grid-cols-[320px_minmax(0,1fr)] lg:gap-10 lg:px-1">
           <aside id="support-menu" className={`${menuOpen ? "block" : "hidden"} space-y-0 px-5 sm:px-6 lg:block lg:px-0`}>
             <section className="support-intro pb-7 pt-5 lg:pt-2">
               <h1 className="max-w-[290px] text-[32px] leading-[1.14] tracking-[-0.025em] text-[var(--teal-deep)]">Know your rights. Find the support you need.</h1>
               <p className="mt-4 max-w-[295px] text-sm leading-6 text-[var(--muted)]">Ask a question in your own words. MDW Compass gives clear information and helps you find the right human support when you need it.</p>
             </section>
 
-            <section className="border-t border-[var(--line)] py-6"><div className="mb-3 flex items-center justify-between gap-3"><div><p className="text-sm font-bold">Choose your language</p></div></div><div className="grid grid-cols-3 gap-1 rounded-lg border border-[var(--line)] p-1">{languageOptions.map((option) => { const selected = languageConfirmed && language === option.value; return <button key={option.value} type="button" aria-pressed={selected} disabled={isBusy} onClick={() => handleLanguageChange(option.value)} className={`min-h-11 rounded-xl px-1 py-2.5 text-xs font-bold transition focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--teal)] ${selected ? "bg-[var(--mint)] text-[var(--teal-deep)]" : "text-[var(--muted)] hover:text-[var(--teal-deep)]"}`}><span>{option.label}</span>{selected && <Check aria-hidden="true" className="ml-1 inline h-3 w-3" />}</button>; })}</div><button type="button" onClick={() => setOtherLanguageOpen((open) => !open)} className="mt-3 inline-flex min-h-11 w-full items-center justify-between rounded-xl border border-[var(--line)] px-3 text-left text-sm font-semibold text-[var(--teal-deep)] hover:bg-[#f7fcfa] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--teal)]"><span>Other languages</span>{otherLanguageOpen ? <X aria-hidden="true" className="h-4 w-4" /> : <ArrowUpRight aria-hidden="true" className="h-4 w-4" />}</button>{otherLanguageOpen && languageConfirmed && <form onSubmit={handleOtherLanguageSubmit} className="mt-3 space-y-2"><label htmlFor="other-language" className="text-xs text-[var(--muted)]">Type the language you would like to use</label><div className="flex gap-2"><input id="other-language" value={otherLanguage} onChange={(event) => setOtherLanguage(event.target.value)} placeholder="For example: Malay" maxLength={64} className="min-h-11 min-w-0 flex-1 rounded-xl border border-[var(--line)] px-3 text-sm outline-none focus:border-[#8cc8bc] focus:ring-4 focus:ring-[#e2f3ef]" /><button type="submit" disabled={isBusy || !otherLanguage.trim()} className="min-h-11 rounded-xl bg-[var(--teal)] px-3 text-sm font-bold text-white disabled:bg-[#d5e2df]">Use</button></div></form>}</section>
+            <section className="border-t border-[var(--line)] py-6"><p className="mb-3 text-sm font-bold">Choose your language</p><LanguageSelect value={languageConfirmed ? language : ""} onChange={handleLanguageChange} disabled={isBusy || voiceState === "recording"} label="Menu language" /></section>
 
             <section aria-labelledby="quick-start-title" className="border-t border-[var(--line)] py-6"><div className="mb-3.5 flex items-end justify-between gap-3"><div><p id="quick-start-title" className="text-sm font-bold">What can I help with?</p><p className="mt-0.5 text-xs text-[var(--muted)]">Start with a topic or ask anything</p></div></div><div className="grid gap-2">{topicCards.map((topic) => { const Icon = topic.icon; return <button key={topic.title} type="button" onClick={() => void sendMessage(topic.prompt)} aria-pressed={!languageConfirmed && input === topic.prompt} disabled={isBusy || !sessionReady} className="group flex min-h-16 items-center gap-3 aria-pressed:bg-[var(--mint)] border-b border-[var(--line)] py-3 text-left transition hover:bg-[var(--mint)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--teal)] disabled:opacity-60"><span className={`flex h-8 w-7 shrink-0 items-center justify-center text-[var(--teal)]`}><Icon aria-hidden="true" className="h-[19px] w-[19px]" strokeWidth={2} /></span><span className="min-w-0 flex-1"><span className="block text-[13px] font-bold text-[var(--ink)]">{topic.title}</span><span className="mt-0.5 block text-xs text-[var(--muted)]">{topic.description}</span></span><ArrowUpRight aria-hidden="true" className="h-4 w-4 shrink-0 text-[#bdcbca] transition group-hover:text-[var(--teal)]" /></button>; })}</div><button type="button" onClick={() => void sendMessage("I would like help finding human support.")} disabled={isBusy || !sessionReady} className="mt-3 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#eaf4f0] text-sm font-bold text-[var(--teal-deep)] hover:bg-[#dff0ea] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--teal)]"><PhoneCall aria-hidden="true" className="h-4 w-4" />Talk to a real person</button></section>
 
@@ -631,10 +631,10 @@ export function MdwCompassChat() {
           <ChatPreview
             channel={{ name: "mdw-compass", description: languageConfirmed ? language : "Choose your language" }}
             status={storageUnavailable ? "Not saved on this browser" : "Saved on this browser · 24 hours"}
-            className="h-[calc(100dvh-5.5rem)] min-h-0 rounded-none sm:h-[calc(100dvh-6.5rem)] sm:rounded-2xl lg:sticky lg:top-6 lg:h-[calc(100dvh-9rem)] lg:min-h-[640px]"
+            className="chat-panel h-[calc(100dvh-5.5rem)] min-h-0 rounded-none sm:h-[calc(100dvh-6.5rem)] sm:rounded-2xl lg:sticky lg:top-6 lg:h-[calc(100dvh-9rem)] lg:min-h-[640px]"
           >
 
-            <div className="flex min-h-0 flex-1 flex-col"><div className="min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-7 sm:py-7" ref={messagesViewportRef} aria-live="polite"><div className="mx-auto max-w-3xl space-y-5"><div className="mb-6 flex items-center gap-3 text-xs text-[var(--muted)]"><span className="h-px flex-1 bg-[#edf2f0]" /><span>Today</span><span className="h-px flex-1 bg-[#edf2f0]" /></div>
+            <div className="flex min-h-0 flex-1 flex-col"><div className="min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-7 sm:py-7" ref={messagesViewportRef} aria-live="polite"><div className="mx-auto max-w-3xl space-y-5"><div className="chat-history"><div className="mb-6 flex items-center gap-3 text-xs text-[var(--muted)]"><span className="h-px flex-1 bg-[#edf2f0]" /><span>Today</span><span className="h-px flex-1 bg-[#edf2f0]" /></div>
 
               {messages.map((message, index) => {
                 const isSpeaking = speakingMessageId === message.id;
@@ -647,9 +647,11 @@ export function MdwCompassChat() {
                   </div>}
                 </ChatMessageRow>;
               })}
-              {!languageConfirmed && <div className="ml-11 space-y-3 sm:ml-[52px]">
+              </div>
+              {!languageConfirmed && <div className="onboarding-options ml-11 space-y-3 sm:ml-[52px]">
+                <div className="space-y-2 lg:hidden"><h2 className="text-2xl font-semibold tracking-tight text-[var(--teal-deep)]">Choose your language</h2><p className="text-sm leading-6 text-[var(--muted)]">Select the language you’re most comfortable with. You can change it anytime.</p></div>
                 {input.trim() && <p role="status" className="rounded-lg bg-[var(--mint)] px-3 py-2 text-sm leading-6 text-[var(--teal-deep)]">Selected question: {input} Choose your language below, then send your question when you’re ready.</p>}
-                <div className="grid grid-cols-1 gap-2 min-[360px]:grid-cols-2">
+                <div className="grid grid-cols-2 gap-2">
                   {onboardingLanguages.map((option) => <button key={option.value} type="button" disabled={isBusy} onClick={() => handleLanguageChange(option.value)} className="min-h-11 rounded-lg border border-[var(--line)] bg-white px-3 py-2.5 text-left text-sm font-medium text-[var(--teal-deep)] transition hover:border-[var(--teal)] hover:bg-[var(--mint)] disabled:opacity-60">{option.label}</button>)}
                 </div>
                 <button type="button" disabled={isBusy} onClick={() => setOtherLanguageOpen((open) => !open)} className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-[var(--teal-deep)] underline underline-offset-4"><Languages aria-hidden="true" className="h-4 w-4" />Other language</button>
@@ -665,7 +667,7 @@ export function MdwCompassChat() {
               {voiceError && <div role="alert" className="flex items-start gap-3 rounded-lg border border-[#f0d7a8] bg-[#fffaf0] p-3.5 text-sm text-[#80521b]"><TriangleAlert aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0" /><p className="leading-5">{voiceError}</p></div>}
               </div></div>
 
-              <div className="safe-bottom border-t border-[#edf2f0] bg-[#fcfefd] px-4 pb-4 pt-3 sm:px-7 sm:pt-4"><div className="mx-auto max-w-3xl">
+              <div className="chat-composer safe-bottom border-t border-[#edf2f0] bg-[#fcfefd] px-4 pb-4 pt-3 sm:px-7 sm:pt-4"><div className="mx-auto max-w-3xl">
                 {voiceState === "recording" && <div className="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[#e6b5b7] bg-[#fff5f5] px-3.5 py-3 text-sm text-[#934d47]" role="status"><div className="flex items-center gap-2"><span className="h-2.5 w-2.5 animate-pulse rounded-full bg-[#c9555c]" /><span className="font-bold">Recording {formatElapsed(recordingSeconds)}</span><span className="text-xs">Speak clearly, then review the words.</span></div><div className="flex gap-2"><button type="button" onClick={() => stopRecording(false)} className="inline-flex min-h-11 items-center gap-1.5 rounded-xl bg-[#c9555c] px-3 text-xs font-bold text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#934d47]"><Square aria-hidden="true" className="h-3.5 w-3.5 fill-current" />Stop</button><button type="button" onClick={cancelVoice} className="inline-flex min-h-11 items-center gap-1.5 rounded-xl border border-[#edc7c7] px-3 text-xs font-bold text-[#934d47] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#934d47]"><X aria-hidden="true" className="h-3.5 w-3.5" />Cancel</button></div></div>}
                 {voiceState === "transcribing" && <div className="mb-3 flex items-center gap-2 rounded-lg border border-[#dbe8e4] bg-[#f5fbf8] px-3.5 py-3 text-sm text-[var(--teal-deep)]" role="status"><LoaderCircle aria-hidden="true" className="h-4 w-4 animate-spin" />Transcribing your recording. You can review it before sending.</div>}
                 {voiceState === "review" && <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[#bfe0d5] bg-[#eef8f4] px-3.5 py-3 text-sm text-[var(--teal-deep)]" role="status"><span className="font-bold">Review your transcript before sending.</span><div className="flex gap-2"><button type="button" onClick={() => void startRecording()} disabled={isBusy} className="inline-flex min-h-10 items-center gap-1.5 rounded-xl border border-[#a8d3c5] px-3 text-xs font-bold"><Mic aria-hidden="true" className="h-3.5 w-3.5" />Re-record</button><button type="button" onClick={cancelVoice} className="inline-flex min-h-10 items-center gap-1.5 rounded-xl px-3 text-xs font-bold"><X aria-hidden="true" className="h-3.5 w-3.5" />Cancel</button></div></div>}
@@ -680,7 +682,9 @@ export function MdwCompassChat() {
                   disabled={!sessionReady || !languageConfirmed || voiceState === "recording"}
                   isProcessing={isBusy}
                   isListening={voiceState === "recording"}
-                  language={languageConfirmed ? language : "Choose a language"}
+                  language={languageConfirmed ? language : ""}
+                  onLanguageChange={handleLanguageChange}
+                  languageDisabled={isBusy || voiceState === "recording"}
                   label={voiceState === "review" ? "Edit the voice transcript" : "Write your message"}
                   placeholder={!languageConfirmed ? "Choose your language above to begin" : voiceState === "review" ? "Edit the transcript before sending…" : "Type your question or record a message…"}
                 />
