@@ -34,6 +34,9 @@ import { LanguageSelect } from "@/components/ui/language-select";
 import { ChatPreview, ChatMessageRow } from "@/components/ui/chat-preview";
 import { LANGUAGE_PROMPT, onboardingLanguages, needsLanguageSelection } from "@/lib/language-onboarding";
 
+import { recordingToWav } from "@/lib/recording-wav";
+import { startLiveTranscription, type LiveTranscription } from "@/lib/live-transcription";
+
 import type { PreferredLanguage } from "@/lib/cx-agent";
 import { loadBrowserSession, saveBrowserSession, clearBrowserSession } from "@/lib/browser-session";
 
@@ -214,6 +217,8 @@ export function MdwCompassChat() {
   const [error, setError] = useState<ChatError | null>(null);
   const [voiceError, setVoiceError] = useState("");
   const [voiceState, setVoiceState] = useState<VoiceState>("idle");
+  const [liveStatus, setLiveStatus] = useState<"connecting" | "live" | "fallback">("connecting");
+  const liveTranscriptionRef = useRef<LiveTranscription | null>(null);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [speakingMessageId, setSpeakingMessageId] = useState<string | null>(null);
   const [speechPaused, setSpeechPaused] = useState(false);
@@ -287,6 +292,8 @@ export function MdwCompassChat() {
   useEffect(() => {
     return () => {
       if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+      discardRecordingRef.current = true;
+      liveTranscriptionRef.current?.cancel();
       mediaRecorderRef.current?.stop();
       mediaStreamRef.current?.getTracks().forEach((track) => track.stop());
     };
@@ -462,7 +469,7 @@ export function MdwCompassChat() {
     setVoiceError("");
 
     try {
-      const audioUrl = await blobToDataUrl(blob);
+      const audioUrl = await blobToDataUrl(await recordingToWav(blob));
       const response = await fetch("/api/transcribe", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -487,6 +494,7 @@ export function MdwCompassChat() {
 
   const stopRecording = (discard: boolean) => {
     discardRecordingRef.current = discard;
+    if (discard) { liveTranscriptionRef.current?.cancel(); liveTranscriptionRef.current = null; }
     const recorder = mediaRecorderRef.current;
 
     if (!recorder || recorder.state === "inactive") {
@@ -515,6 +523,10 @@ export function MdwCompassChat() {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
       recordedChunksRef.current = [];
+      liveTranscriptionRef.current?.cancel();
+      liveTranscriptionRef.current = null;
+      setLiveStatus("connecting");
+      const generation = requestGenerationRef.current;
       discardRecordingRef.current = false;
       mediaStreamRef.current = stream;
       mediaRecorderRef.current = recorder;
@@ -528,6 +540,9 @@ export function MdwCompassChat() {
       };
       recorder.onstop = () => {
         const wasDiscarded = discardRecordingRef.current;
+        const live = liveTranscriptionRef.current;
+        liveTranscriptionRef.current = null;
+        const liveResult = !wasDiscarded && live ? live.stop() : null;
         const recordedType = recorder.mimeType || mimeType || "audio/webm";
         const blob = new Blob(recordedChunksRef.current, { type: recordedType });
         mediaStreamRef.current?.getTracks().forEach((track) => track.stop());
@@ -545,11 +560,32 @@ export function MdwCompassChat() {
           setVoiceError("No audio was captured. Please try again or type your message.");
           return;
         }
-        void transcribeRecording(blob);
+        if (liveResult) {
+          setVoiceState("transcribing");
+          void liveResult.then((transcript) => {
+            if (generation !== requestGenerationRef.current) return;
+            if (!transcript.trim()) throw new Error("Empty live transcript");
+            setInput(transcript);
+            setVoiceState("review");
+          }).catch(() => {
+            if (generation === requestGenerationRef.current) void transcribeRecording(blob);
+          });
+        } else void transcribeRecording(blob);
       };
       recorder.start(250);
       setRecordingSeconds(0);
       setVoiceState("recording");
+      void startLiveTranscription(stream, (text) => {
+        if (generation === requestGenerationRef.current && recorder.state === "recording") setInput(text);
+      }, () => {
+        if (generation === requestGenerationRef.current && recorder.state === "recording") setLiveStatus("fallback");
+      }).then((live) => {
+        if (generation !== requestGenerationRef.current || recorder.state !== "recording") { live.cancel(); return; }
+        liveTranscriptionRef.current = live;
+        setLiveStatus("live");
+      }).catch(() => {
+        if (generation === requestGenerationRef.current && recorder.state === "recording") setLiveStatus("fallback");
+      });
     } catch (requestError) {
       setVoiceState("idle");
       setVoiceError(
@@ -668,8 +704,8 @@ export function MdwCompassChat() {
               </div></div>
 
               <div className="chat-composer safe-bottom border-t border-[#edf2f0] bg-[#fcfefd] px-4 pb-4 pt-3 sm:px-7 sm:pt-4"><div className="mx-auto max-w-3xl">
-                {voiceState === "recording" && <div className="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[#e6b5b7] bg-[#fff5f5] px-3.5 py-3 text-sm text-[#934d47]" role="status"><div className="flex items-center gap-2"><span className="h-2.5 w-2.5 animate-pulse rounded-full bg-[#c9555c]" /><span className="font-bold">Recording {formatElapsed(recordingSeconds)}</span><span className="text-xs">Speak clearly, then review the words.</span></div><div className="flex gap-2"><button type="button" onClick={() => stopRecording(false)} className="inline-flex min-h-11 items-center gap-1.5 rounded-xl bg-[#c9555c] px-3 text-xs font-bold text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#934d47]"><Square aria-hidden="true" className="h-3.5 w-3.5 fill-current" />Stop</button><button type="button" onClick={cancelVoice} className="inline-flex min-h-11 items-center gap-1.5 rounded-xl border border-[#edc7c7] px-3 text-xs font-bold text-[#934d47] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#934d47]"><X aria-hidden="true" className="h-3.5 w-3.5" />Cancel</button></div></div>}
-                {voiceState === "transcribing" && <div className="mb-3 flex items-center gap-2 rounded-lg border border-[#dbe8e4] bg-[#f5fbf8] px-3.5 py-3 text-sm text-[var(--teal-deep)]" role="status"><LoaderCircle aria-hidden="true" className="h-4 w-4 animate-spin" />Transcribing your recording. You can review it before sending.</div>}
+                {voiceState === "recording" && <div className="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[#e6b5b7] bg-[#fff5f5] px-3.5 py-3 text-sm text-[#934d47]" role="status"><div className="flex items-center gap-2"><span className="h-2.5 w-2.5 animate-pulse rounded-full bg-[#c9555c]" /><span className="font-bold">Recording {formatElapsed(recordingSeconds)}</span><span className="text-xs">{liveStatus === "live" ? "Live words appear below. Stop to review." : liveStatus === "connecting" ? "Connecting live transcription…" : "Live unavailable. Transcription starts when you stop."}</span></div><div className="flex gap-2"><button type="button" onClick={() => stopRecording(false)} className="inline-flex min-h-11 items-center gap-1.5 rounded-xl bg-[#c9555c] px-3 text-xs font-bold text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#934d47]"><Square aria-hidden="true" className="h-3.5 w-3.5 fill-current" />Stop</button><button type="button" onClick={cancelVoice} className="inline-flex min-h-11 items-center gap-1.5 rounded-xl border border-[#edc7c7] px-3 text-xs font-bold text-[#934d47] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#934d47]"><X aria-hidden="true" className="h-3.5 w-3.5" />Cancel</button></div></div>}
+                {voiceState === "transcribing" && <div className="mb-3 flex items-center gap-2 rounded-lg border border-[#dbe8e4] bg-[#f5fbf8] px-3.5 py-3 text-sm text-[var(--teal-deep)]" role="status"><LoaderCircle aria-hidden="true" className="h-4 w-4 animate-spin" />Finishing your transcript. You can review it before sending.</div>}
                 {voiceState === "review" && <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[#bfe0d5] bg-[#eef8f4] px-3.5 py-3 text-sm text-[var(--teal-deep)]" role="status"><span className="font-bold">Review your transcript before sending.</span><div className="flex gap-2"><button type="button" onClick={() => void startRecording()} disabled={isBusy} className="inline-flex min-h-10 items-center gap-1.5 rounded-xl border border-[#a8d3c5] px-3 text-xs font-bold"><Mic aria-hidden="true" className="h-3.5 w-3.5" />Re-record</button><button type="button" onClick={cancelVoice} className="inline-flex min-h-10 items-center gap-1.5 rounded-xl px-3 text-xs font-bold"><X aria-hidden="true" className="h-3.5 w-3.5" />Cancel</button></div></div>}
                 {storageUnavailable && <p role="status" className="mb-3 text-sm text-[#80521b]">Browser storage is unavailable or full. You can still chat, but refreshing may lose this conversation.</p>}<AiMascotInput
                   showMascot={false}

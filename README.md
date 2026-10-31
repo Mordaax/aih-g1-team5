@@ -114,3 +114,8 @@ Text messages, reviewed voice transcripts, drafts, language, and the CX session 
 
 ## Language-first live chat
 New conversations start with a multilingual language question and selectable language names. Typing and recording unlock after CX confirms the selection. The server forwards the chosen language by name; if the deployed root agent returns its initial numbered language menu, it answers that menu once in the same CX session. The browser saves the confirmation, so existing conversations resume after refresh. New Chat resets onboarding. The live chat uses components/ui/chat-preview.tsx for avatar-and-name message rows, real message times, read-aloud controls, and reduced-motion-aware entrance animation. Cloud effects have been removed.
+
+## Live voice transcription
+The Record button streams 16 kHz mono PCM16 audio through MERaLiON’s documented optional-key WebSocket at `wss://api.meralion.ai/v1/audio/stream`. Interim hypotheses replace one another in the composer; final segments accumulate. Stop flushes the last audio frame, sends EOF, and waits for final results before transcript review. No message is sent to CX until Send is pressed. The existing full recording is kept in memory as a fallback if streaming is unavailable, authentication becomes required, or the browser cannot capture the required audio format. No private API key is exposed to the browser. Audio leaves the device while recording. Cancel and page cleanup close the stream and release microphone resources.
+
+Verified with synthetic PCM16 speech: real interim events were received before EOF, followed by the correct final transcript and a done event. Physical microphone behavior and recognition accuracy in each language still require device testing.
