@@ -1,0 +1,14 @@
+{
+  "capturedAt": "2026-10-31",
+  "dashboardUrl": "http://localhost:3000/",
+  "configuredTarget": {
+    "GCP_PROJECT_ID": "aih-g1-team-5",
+    "GCP_REGION_ID": "us",
+    "CX_API_VERSION": "v1beta",
+    "CX_APPLICATION_ID": "e223beb8-98d2-4543-be83-d539b0b86e6a",
+    "CX_DEPLOYMENT_ID": "01493575-fb2d-4418-85bc-28b4099a6254",
+    "CX_APPLICATION_VERSION_ID": "e4c99d0c-2cef-4493-97c4-106c434ce741"
+  },
+  "liveRequestSent": false,
+  "note": "Read from local configuration only. Capture effective target again at run time; settings can change."
+}

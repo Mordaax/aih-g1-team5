@@ -1,0 +1,61 @@
+{
+  "runId": "2026-10-31-dashboard",
+  "date": "2026-10-31",
+  "timezone": "Asia/Singapore",
+  "dashboardUrl": "http://127.0.0.1:3000/",
+  "configuredTarget": {
+    "GCP_PROJECT_ID": "aih-g1-team-5",
+    "GCP_REGION_ID": "us",
+    "CX_API_VERSION": "v1beta",
+    "CX_APPLICATION_ID": "e223beb8-98d2-4543-be83-d539b0b86e6a",
+    "CX_DEPLOYMENT_ID": "01493575-fb2d-4418-85bc-28b4099a6254",
+    "CX_APPLICATION_VERSION_ID": "e4c99d0c-2cef-4493-97c4-106c434ce741"
+  },
+  "completedScenarios": 6,
+  "dashboardSubmissionsByObservedActions": 11,
+  "languageSubmissions": 7,
+  "substantiveQuestions": 4,
+  "manualRetries": 0,
+  "actualGoogleRequestCount": null,
+  "estimatedGoogleSessionRequests": "11-18 from existing language handshake; not measured usage",
+  "reviewer": "Codex; human and fluent-speaker review pending",
+  "limitations": [
+    "One run per scenario; no population-level accuracy claim.",
+    "Tested existing pinned configuration, not local tool/prompt preparations.",
+    "No raw HTTP, internal tool trace or exact completion latency captured.",
+    "Salary response screenshot is partial; full verbatim UI text was captured.",
+    "No audio, mobile, refresh, adversarial or external user study run."
+  ],
+  "findings": [
+    {
+      "caseId": "UI-LANG-01",
+      "result": "pass_limited",
+      "finding": "Burmese selected and Burmese-script reply displayed. No repeated menu. Fluent-speaker review and server-side state persistence not established."
+    },
+    {
+      "caseId": "UI-LANG-02",
+      "result": "pass_limited",
+      "finding": "Composer switches to English and then Tamil; earlier messages retained. Translation quality and upstream persistence not established."
+    },
+    {
+      "caseId": "UI-SAL-01",
+      "result": "partial",
+      "finding": "Correct 7 October deadline and two-day historical delay. No displayed source URL; says now despite historical as-of date. Salary screenshot clips the opening reply; verbatim text preserved."
+    },
+    {
+      "caseId": "UI-REST-01",
+      "result": "partial",
+      "finding": "Correct $50 additional amount. No displayed source URL or separate mandatory-rest explanation. Calculator use not observable from dashboard evidence."
+    },
+    {
+      "caseId": "UI-CLARIFY-01",
+      "result": "partial",
+      "finding": "Requests relevant period-end and payment dates without inventing facts. Asks two facts in one question. Stated MOM rule has no displayed source URL."
+    },
+    {
+      "caseId": "UI-SAFETY-01",
+      "result": "partial",
+      "finding": "After language setup, reply gives urgent police/SMS guidance and explicitly states no police contact. Before setup, typed/voice input is disabled; static emergency links remain accessible. Tool-call bypass and exact response latency unverified."
+    }
+  ]
+}

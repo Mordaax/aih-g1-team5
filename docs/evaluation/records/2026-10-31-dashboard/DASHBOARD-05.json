@@ -1,0 +1,25 @@
+{
+  "caseId": "UI-SAL-01",
+  "action": "Send salary question",
+  "submittedText": "My salary period ended 2026-09-30. I still have not been paid as of 2026-10-09. When was it due?",
+  "screenshots": [
+    "UI-SAL-01-01-request.jpg",
+    "UI-SAL-01-02-response.jpg"
+  ],
+  "startedAt": "2026-10-31T05:11:03.836Z",
+  "responseState": "Browser tab: 7, Title: \"MDW Compass | Support for domestic workers in Singapore\", URL: \"http://127.0.0.1:3000/\".\nThe following is a diff from the previous accessibility tree with ~ and + representing changed and added elements, respectively. Removed elements are summarized by ID range.\n~\t\t\t\t12 pop up button (collapsed, settable) Description: Menu language, Value: English, Secondary Actions: Expand\n~\t\t\t\t31 checkbox Salary Rights Pay, deductions & days off, Value: 0\n~\t\t\t\t32 checkbox Rest Days & Well-Being Rest, food & living conditions, Value: 0\n~\t\t\t\t33 checkbox Abuse & Mistreatment When something does not feel safe, Value: 0\n~\t\t\t\t34 checkbox Find Human Support Talk to a real person who can help, Value: 0\n~\t\t\t\t35 button Talk to a real person\n~\t\t\t\t95 text MDW Compass\n+\t\t\t\t96 text 01:11 PM\n+\t\t\t\t97 text Your salary was due by October 7, 2026. This means it is now 2 days overdue.\n\nThe Ministry of Manpower (MOM) states that employers must pay their migrant domestic workers no later than 7 days after the end of the salary period.\n\nWould you like to know more about what you can do next, or would you like to discuss another issue?\n+\t\t\t\t98 button Listen to response\n~\t\t\t\t61 text entry area (settable) Write your message, ID: chat-input\n~\t\t\t\t62 pop up button (collapsed, settable) Description: Chat language, Value: English, Secondary Actions: Expand\n~\t\t\t\t78 button Description: Record a voice message, Help: Record voice\n~\t\t\t80 text Enter sends · Shift + Enter adds a line 0 /4000 Need a person? We can help you find human support.\n~\t\t\t81 button Find support\nThe focused UI element is 0 AXWebArea MDW Compass | Support for domestic workers in Singapore, URL: 127.0.0.1:3000/",
+  "observedAt": "2026-10-31T05:11:20.303Z",
+  "recordId": "DASHBOARD-05",
+  "visibleResponse": "Your salary was due by October 7, 2026. This means it is now 2 days overdue.\n\nThe Ministry of Manpower (MOM) states that employers must pay their migrant domestic workers no later than 7 days after the end of the salary period.\n\nWould you like to know more about what you can do next, or would you like to discuss another issue?",
+  "status": "completed",
+  "synthetic": true,
+  "dashboardUrl": "http://127.0.0.1:3000/",
+  "dashboardHttpRequest": null,
+  "dashboardHttpResponse": null,
+  "observedCxRequestCount": null,
+  "evidenceNote": "Observed UI action and verbatim rendered response, not captured HTTP traffic.",
+  "elapsedObservationUpperBoundMs": 16467,
+  "timingNote": "Start-to-observation interval includes automation/capture delay; not measured provider or UI completion latency.",
+  "result": "partial",
+  "finding": "Correct 7 October deadline and two-day historical delay. No displayed source URL; says now despite historical as-of date. Salary screenshot clips the opening reply; verbatim text preserved."
+}

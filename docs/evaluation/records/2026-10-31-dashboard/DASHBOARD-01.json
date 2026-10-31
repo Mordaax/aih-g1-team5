@@ -1,0 +1,26 @@
+{
+  "caseId": "UI-LANG-01",
+  "action": "Choose Burmese onboarding button",
+  "submittedText": "Burmese",
+  "startedAt": "2026-10-31T05:10:01.457Z",
+  "screenshots": [
+    "UI-LANG-01-00-onboarding.jpg",
+    "UI-LANG-01-01-request.jpg",
+    "UI-LANG-01-02-response.jpg"
+  ],
+  "observedAt": "2026-10-31T05:10:13.998Z",
+  "responseState": "Browser tab: 7, Title: \"MDW Compass | Support for domestic workers in Singapore\", URL: \"http://127.0.0.1:3000/\".\nThe following is a diff from the previous accessibility tree with ~ and + representing changed and added elements, respectively. Removed elements are summarized by ID range.\nRemoved element IDs: 92-99\n~\t\t\t\t12 pop up button (collapsed, settable) Description: Menu language, Value: မြန်မာဘာသာ · Burmese, Secondary Actions: Expand\n~\t\t\t\t\t\t18 (selected) မြန်မာဘာသာ · Burmese\n~\t\t\t\t31 checkbox Salary Rights Pay, deductions & days off, Value: 0\n~\t\t\t\t32 checkbox Rest Days & Well-Being Rest, food & living conditions, Value: 0\n~\t\t\t\t33 checkbox Abuse & Mistreatment When something does not feel safe, Value: 0\n~\t\t\t\t34 checkbox Find Human Support Talk to a real person who can help, Value: 0\n~\t\t\t\t35 button Talk to a real person\n~\t\t\t\t48 text Burmese Saved on this browser · 24 hours\n~\t\t\t\t85 text You\n~\t\t\t\t86 text 01:10 PM\n~\t\t\t\t87 text Burmese\n~\t\t\t\t88 text MDW Compass\n~\t\t\t\t89 text 01:10 PM\n~\t\t\t\t90 text ကျေးဇူးတင်ပါတယ်။ မြန်မာဘာသာနဲ့ ဆက်ပြောလို့ရပါတယ်။ ဘာကူညီပေးရမလဲ။\n~\t\t\t\t91 button Listen to response\n~\t\t\t\t61 text entry area (settable) Write your message, ID: chat-input\n~\t\t\t\t62 pop up button (collapsed, settable) Description: Chat language, Value: မြန်မာဘာသာ · Burmese, Secondary Actions: Expand\n~\t\t\t\t\t\t68 (selected) မြန်မာဘာသာ · Burmese\n~\t\t\t\t78 button Description: Record a voice message, Help: Record voice\n~\t\t\t81 button Find support\nThe focused UI element is 0 AXWebArea MDW Compass | Support for domestic workers in Singapore, URL: 127.0.0.1:3000/",
+  "recordId": "DASHBOARD-01",
+  "visibleResponse": "ကျေးဇူးတင်ပါတယ်။ မြန်မာဘာသာနဲ့ ဆက်ပြောလို့ရပါတယ်။ ဘာကူညီပေးရမလဲ။",
+  "status": "completed",
+  "synthetic": true,
+  "dashboardUrl": "http://127.0.0.1:3000/",
+  "dashboardHttpRequest": null,
+  "dashboardHttpResponse": null,
+  "observedCxRequestCount": null,
+  "evidenceNote": "Observed UI action and verbatim rendered response, not captured HTTP traffic.",
+  "elapsedObservationUpperBoundMs": 12541,
+  "timingNote": "Start-to-observation interval includes automation/capture delay; not measured provider or UI completion latency.",
+  "result": "pass_limited",
+  "finding": "Burmese selected and Burmese-script reply displayed. No repeated menu. Fluent-speaker review and server-side state persistence not established."
+}

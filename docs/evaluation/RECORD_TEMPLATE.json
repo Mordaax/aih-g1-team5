@@ -1,0 +1,38 @@
+{
+  "recordId": null,
+  "caseId": null,
+  "status": "not_run",
+  "synthetic": true,
+  "path": "localhost_dashboard",
+  "dashboardUrl": "http://localhost:3000/",
+  "testedAppVersion": null,
+  "testedDeployment": null,
+  "inputMethod": null,
+  "conversationContext": null,
+  "exchanges": [],
+  "exchangeFieldGuide": {
+    "uiAction": "Exact button/selector/composer action",
+    "submittedText": "Exact text actually sent; null before execution",
+    "selectedLanguage": "Observed selection",
+    "visibleResponse": "Verbatim displayed response or error",
+    "sentAt": "ISO timestamp with timezone",
+    "completedAt": "ISO timestamp with timezone",
+    "elapsedMs": "Measured value; null when not measured",
+    "dashboardHttpRequest": "Captured payload only; otherwise null",
+    "dashboardHttpResponse": "Captured payload only; otherwise null",
+    "httpStatus": "Observed status only; otherwise null",
+    "screenshotFiles": "Paths to saved evidence",
+    "wasRetry": "Record explicit retries separately"
+  },
+  "observedDashboardRequestCount": null,
+  "observedCxRequestCount": null,
+  "assessment": {
+    "result": null,
+    "observations": [],
+    "displayedSources": [],
+    "toolUseEvidence": null,
+    "limitations": [],
+    "fluentSpeakerReview": "pending_if_applicable",
+    "reviewer": null
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "recordId": "BASELINE-DIRECT-001",
+  "caseId": "SAL-UNPAID",
+  "status": "completed_before_test_hold",
+  "synthetic": true,
+  "path": "direct_google_api",
+  "dashboardTest": false,
+  "excludedFromDashboardResults": true,
+  "request": {
+    "message": "Please use English. My salary period ended 2026-09-30. I still have not been paid as of 2026-10-09. When was it due?",
+    "endpoint": "Google CES runSession, draft; no localhost dashboard"
+  },
+  "response": {
+    "text": "I'm sorry to hear your salary is late. Based on the Ministry of Manpower (MOM) guidelines, your salary for the period ending September 30, 2026, was due by October 7, 2026. This means your payment is currently two days overdue.\n\nYou can try speaking with your employer about this. If you need further assistance, you can contact MOM or the Centre for Domestic Employees (CDE)."
+  },
+  "timing": {
+    "startedAt": "2026-10-31T04:45:36.163335Z",
+    "finishedAt": "2026-10-31T04:45:48.393993Z",
+    "providerReportedDuration": "12.230658s"
+  },
+  "assessment": {
+    "reviewer": "Codex configuration review; human review pending",
+    "result": "partial",
+    "observations": [
+      "Deadline of 2026-10-07 and two days after deadline as of 2026-10-09 are correct.",
+      "The user-facing answer omitted the official source URL contained in the specialist report.",
+      "This run bypassed the dashboard; it cannot establish frontend, translation, onboarding or browser-persistence behaviour."
+    ],
+    "quotaNote": "One direct runSession request was sent before the user requested the test hold; internal model/tool calls may be greater than one."
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "caseId": "UI-CLARIFY-01",
+  "action": "Choose English for fresh clarification session",
+  "submittedText": "English",
+  "startedAt": "2026-10-31T05:12:38.877Z",
+  "screenshots": [
+    "UI-CLARIFY-01-00-language-request.jpg",
+    "UI-CLARIFY-01-00-language-response.jpg"
+  ],
+  "responseState": "Browser tab: 7, Title: \"MDW Compass | Support for domestic workers in Singapore\", URL: \"http://127.0.0.1:3000/\".\nThe following is a diff from the previous accessibility tree with ~ and + representing changed and added elements, respectively. Removed elements are summarized by ID range.\nRemoved element IDs: 92-99\n~\t\t\t\t12 pop up button (collapsed, settable) Description: Menu language, Value: English, Secondary Actions: Expand\n~\t\t\t\t\t\t15 (selected) English\n~\t\t\t\t31 checkbox Salary Rights Pay, deductions & days off, Value: 0\n~\t\t\t\t32 checkbox Rest Days & Well-Being Rest, food & living conditions, Value: 0\n~\t\t\t\t33 checkbox Abuse & Mistreatment When something does not feel safe, Value: 0\n~\t\t\t\t34 checkbox Find Human Support Talk to a real person who can help, Value: 0\n~\t\t\t\t35 button Talk to a real person\n~\t\t\t\t48 text English Saved on this browser · 24 hours\n~\t\t\t\t85 text You\n~\t\t\t\t86 text 01:12 PM\n~\t\t\t\t87 text English\n~\t\t\t\t88 text MDW Compass\n~\t\t\t\t89 text 01:12 PM\n~\t\t\t\t90 text Thank you. We can continue in English. How can I help you today?\n~\t\t\t\t91 button Listen to response\n~\t\t\t\t61 text entry area (settable) Write your message, ID: chat-input\n~\t\t\t\t62 pop up button (collapsed, settable) Description: Chat language, Value: English, Secondary Actions: Expand\n~\t\t\t\t\t\t65 (selected) English\n~\t\t\t\t78 button Description: Record a voice message, Help: Record voice\n~\t\t\t81 button Find support\nThe focused UI element is 0 AXWebArea MDW Compass | Support for domestic workers in Singapore, URL: 127.0.0.1:3000/",
+  "observedAt": "2026-10-31T05:12:56.547Z",
+  "recordId": "DASHBOARD-08",
+  "visibleResponse": "Thank you. We can continue in English. How can I help you today?",
+  "status": "completed",
+  "synthetic": true,
+  "dashboardUrl": "http://127.0.0.1:3000/",
+  "dashboardHttpRequest": null,
+  "dashboardHttpResponse": null,
+  "observedCxRequestCount": null,
+  "evidenceNote": "Observed UI action and verbatim rendered response, not captured HTTP traffic.",
+  "elapsedObservationUpperBoundMs": 17670,
+  "timingNote": "Start-to-observation interval includes automation/capture delay; not measured provider or UI completion latency.",
+  "result": "setup_completed",
+  "finding": "Language setup returned an English confirmation."
+}

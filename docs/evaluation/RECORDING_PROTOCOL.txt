@@ -1,0 +1,73 @@
+MDW Compass dashboard evaluation records
+Prepared 31 October 2026, Asia/Singapore
+
+CURRENT HOLD
+No new test queries, language selections, automatic retries, Studio evaluation
+runs, audio submissions or test scripts until the user approves the batch and
+its request budget. Preparing these files does not execute a test.
+
+TEST PATH
+Operate http://localhost:3000/ through its actual buttons, language selectors
+and composer. Record the displayed answer, including any error or incomplete
+response. Direct Google API responses must never be labelled dashboard results.
+The initial welcome is frontend text, not a generated agent response.
+
+VERSION CONTROL
+LOCAL_TARGET.json records the configured deployment and app version without
+credentials. Confirm this target before an approved run. The website pins a
+version; changing the Studio draft alone does not update that version.
+The current tool and prompt changes are local preparations, not a deployed fix.
+
+RECORD EACH EXCHANGE
+1. Case ID, run ID, timezone, date, reviewer and input method.
+2. Fresh versus continued conversation, language, and relevant prior turns.
+3. Exact UI action and exact submitted text, including language selections.
+4. Exact visible assistant reply or error. Do not paraphrase the source record.
+5. Send and visible-completion timestamps; state how elapsed time was measured.
+6. Screenshots are required for EVERY executed dashboard exchange:
+   - <case-id>-<exchange-number>-01-request.png: show the exact submitted
+     question or language selection in the actual localhost dashboard.
+   - <case-id>-<exchange-number>-02-response.png: show that question together
+     with the chatbot reply or error, keeping enough surrounding UI for context.
+   - For long replies, save additional numbered screenshots with overlapping
+     content until the entire reply and displayed sources are covered.
+   - Preserve original screenshots. Do not recreate, generate, or silently edit
+     the evidence. Note any redacted derivative separately from the original.
+   - Record every screenshot's relative path in the exchange's screenshotFiles.
+     If capture fails, mark screenshot evidence missing; do not claim completion.
+   - Capture the conversation UI, not credentials, cookies or authentication
+     headers. Use synthetic messages for this internal evaluation batch.
+7. Actual HTTP request/response and status only if captured from the application;
+   leave these fields null when not observed. Never reconstruct them as evidence.
+8. Pass/partial/fail against TEST_PLAN.csv expectations, with a concrete reason.
+9. Source links actually displayed, limitations, and fluent-speaker review status.
+10. Any retry, accidental send or language-handshake request as a separate entry.
+
+QUOTA ACCOUNTING
+The proposed six-case independent-session batch requires approximately 11
+dashboard POSTs when language setup is included. The existing language handshake
+can call Google twice for one language-selection POST, yielding approximately
+11-18 runSession requests for this plan. These are estimates, not measured usage
+or upper bounds on internal model/tool calls or provider quota consumption.
+Do not execute this expanded batch without the user's review. A smaller subset
+can be approved first. A failed or timed-out send is not automatically retried.
+
+RECORD FORMAT
+Use RECORD_TEMPLATE.json for each actual run and append a summary to FINDINGS.csv.
+Planned inputs belong in TEST_PLAN.csv; they are not findings. Pending responses,
+durations and scores stay null. Save screenshots under records/<run-id>/.
+HTTP payloads, when available, must omit credentials, cookies and auth headers.
+Use fictional scenarios for this internal batch. Do not commit real participant
+messages, identifying information or credentials to the repository.
+
+EXISTING BASELINE
+records/BASELINE-DIRECT-001.json preserves the single fictional direct-API run
+performed before the test hold. It is explicitly excluded from dashboard results.
+Its correct salary deadline is not proof of the calculator or frontend working.
+Its source omission is a recorded finding, not a claim about every conversation.
+
+INTERPRETATION
+Dashboard evidence establishes what the user sees. Correct answers alone do not
+prove a particular specialist, calculator or retrieval call occurred. Record tool
+use only when separately supported by diagnostic evidence. Automated review is
+not external field testing, and language switching is not translation validation.
