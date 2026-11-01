@@ -96,23 +96,23 @@ export function AiMascotInput({ value, onChange, onSubmit, onKeyDown, onRecord, 
       {showMascot && <div className="pointer-events-none absolute -top-5 right-3 z-10 sm:right-5">
         <RobotBeta emotion={isProcessing ? "thinking" : "reading"} textLength={value.length} isListening={isListening} />
       </div>}
-      <form onSubmit={onSubmit} className={cn("relative z-20 rounded-3xl border border-zinc-200 bg-white p-3 shadow-[0_8px_24px_rgba(20,42,50,0.05)] transition-colors focus-within:border-[var(--teal)] sm:p-4", disabled && "bg-zinc-50")}>
+      <form onSubmit={onSubmit} className={cn("relative z-20 rounded-lg border border-[var(--line)] bg-[var(--surface)] p-3  transition-colors focus-within:border-[var(--primary)] sm:p-4", disabled && "bg-[var(--surface-muted)]")}>
         <label htmlFor="chat-input" className="sr-only">{label}</label>
         <textarea ref={textareaRef} id="chat-input" value={value} onChange={(event) => onChange(event.target.value)}
           onKeyDown={onKeyDown} disabled={disabled || busy} rows={2} maxLength={4000}
           placeholder={isListening ? "Recording… stop to review your words" : isProcessing ? "Waiting for your response…" : placeholder}
           className="block max-h-36 min-h-[54px] w-full resize-none overflow-y-auto bg-transparent px-1 pb-2 text-base leading-6 text-[var(--ink)] outline-none placeholder:text-[var(--muted)] disabled:opacity-70" />
-        <div className="mt-1 flex min-w-0 items-center justify-between gap-2 border-t border-zinc-100 pt-2">
+        <div className="mt-1 flex min-w-0 items-center justify-between gap-2 border-t border-[var(--line)] pt-2">
           <div className="min-w-0 flex-1 sm:max-w-64">
             <LanguageSelect value={language} onChange={onLanguageChange} disabled={languageDisabled || busy} label="Chat language" compact />
           </div>
           <div className="flex shrink-0 items-center gap-2">
             <button type="button" onClick={onRecord} disabled={disabled || busy} aria-label="Record a voice message" title="Record voice"
-              className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-xl text-[var(--teal-deep)] transition hover:bg-[var(--mint)] disabled:text-zinc-400">
+              className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-xl text-[var(--primary)] transition hover:bg-[var(--accent)] disabled:text-[var(--muted)]">
               <Mic aria-hidden="true" className="h-5 w-5" />
             </button>
             <button type="submit" disabled={disabled || busy || !value.trim()} aria-label={label === "Edit the voice transcript" ? "Send transcript" : "Send message"}
-              className={cn("inline-flex min-h-11 min-w-11 items-center justify-center rounded-full bg-zinc-950 text-white transition hover:bg-[var(--teal-deep)] disabled:bg-zinc-200 disabled:text-zinc-400", isProcessing && "disabled:bg-amber-100 disabled:text-amber-700")}>
+              className={cn("inline-flex min-h-11 min-w-11 items-center justify-center rounded-full bg-[var(--primary)] text-[var(--on-primary)] transition hover:bg-[var(--primary)] disabled:bg-[var(--surface-muted)] disabled:text-[var(--muted)]", isProcessing && "disabled:bg-[var(--warning-surface)] disabled:text-[var(--warning)]")}>
               {isProcessing ? <LoaderCircle aria-hidden="true" className="h-5 w-5 animate-spin" /> : <ArrowUp aria-hidden="true" className="h-5 w-5" />}
             </button>
           </div>
