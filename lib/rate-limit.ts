@@ -23,7 +23,7 @@ export function getClientIdentifier(request: Request) {
   return forwardedFor?.split(",")[0]?.trim() || realIp || "anonymous";
 }
 
-export function checkRateLimit(identifier: string) {
+export function checkRateLimit(identifier: string, limit = MAX_REQUESTS_PER_WINDOW) {
   const now = Date.now();
   const current = entries.get(identifier);
 
@@ -32,7 +32,7 @@ export function checkRateLimit(identifier: string) {
     return { allowed: true, retryAfterSeconds: 0 };
   }
 
-  if (current.count >= MAX_REQUESTS_PER_WINDOW) {
+  if (current.count >= limit) {
     return {
       allowed: false,
       retryAfterSeconds: Math.ceil(

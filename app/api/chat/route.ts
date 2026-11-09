@@ -8,9 +8,18 @@ import {
 } from "@/lib/cx-agent";
 import { checkRateLimit, getClientIdentifier } from "@/lib/rate-limit";
 import { selectCxLanguage } from "@/lib/language-onboarding";
+import { createTranslatedChat } from "@/lib/translated-chat";
+import { translateText, TranslationError } from "@/lib/sealion";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const maxDuration = 120;
+
+const translatedChat = createTranslatedChat({
+  run: runCxSession,
+  selectLanguage: (selection) => selectCxLanguage(runCxSession, selection),
+  translate: translateText,
+});
 
 const SESSION_ID_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9-_]{4,62}$/;
 const MAX_MESSAGE_LENGTH = 4_000;
@@ -20,6 +29,7 @@ type ChatRequestBody = {
   sessionId?: unknown;
   language?: unknown;
   selectLanguage?: unknown;
+  requestId?: unknown;
 };
 
 function jsonResponse(body: Record<string, unknown>, status = 200) {
@@ -47,7 +57,9 @@ export async function POST(request: Request) {
   let body: ChatRequestBody;
 
   try {
-    body = (await request.json()) as ChatRequestBody;
+    const parsed: unknown = await request.json();
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return jsonResponse({error: "Please send a valid JSON request."}, 400);
+    body = parsed as ChatRequestBody;
   } catch {
     return jsonResponse({ error: "Please send a valid JSON request." }, 400);
   }
@@ -56,6 +68,8 @@ export async function POST(request: Request) {
   const sessionId =
     typeof body.sessionId === "string" ? body.sessionId.trim() : "";
   const language = body.language;
+  const requestId = typeof body.requestId === "string" ? body.requestId : crypto.randomUUID();
+  if (!/^[a-zA-Z0-9_-]{1,100}$/.test(requestId)) return jsonResponse({error: "Please send a valid request ID."}, 400);
 
   if (!SESSION_ID_PATTERN.test(sessionId)) {
     return jsonResponse({ error: "Please start a new chat session." }, 400);
@@ -72,18 +86,12 @@ export async function POST(request: Request) {
     );
   }
 
-  if (!message && !body.language) {
+  if (!message && body.selectLanguage !== true) {
     return jsonResponse({ error: "Please enter a message." }, 400);
   }
 
   try {
-    const result = body.selectLanguage === true
-      ? await selectCxLanguage(runCxSession, { sessionId, language: language as PreferredLanguage })
-      : await runCxSession({
-      message,
-      sessionId,
-      language: language as PreferredLanguage,
-    });
+    const result = await translatedChat({message, sessionId, language: (language as PreferredLanguage).trim(), requestId, selectLanguage: body.selectLanguage === true});
 
     if (!result.message && message) {
       return jsonResponse(
@@ -98,8 +106,12 @@ export async function POST(request: Request) {
     return jsonResponse({
       message: result.message,
       outputCount: result.outputCount,
+      language: result.language,
     });
   } catch (error) {
+    if (error instanceof TranslationError) {
+      return jsonResponse({error: error.message}, error.code === "RATE_LIMIT" ? 429 : error.code === "CONFIGURATION" || error.code === "AUTHENTICATION" ? 503 : 502);
+    }
     console.error("MDW Compass chat request failed", {
       error: error instanceof Error ? error.message : "Unknown error",
     });

@@ -1,4 +1,4 @@
-export type SavedMessage = { id: string; role: "user" | "assistant"; content: string };
+export type SavedMessage = { id: string; role: "user" | "assistant"; content: string; language?: string };
 export type BrowserSession = {
   sessionId: string;
   language: string;
@@ -24,7 +24,8 @@ function validSession(value: unknown): value is BrowserSession & { version: numb
     && data.messages.every((message: unknown) => {
       if (!message || typeof message !== "object") return false;
       const entry = message as Record<string, unknown>;
-      return typeof entry.id === "string" && (entry.role === "user" || entry.role === "assistant") && typeof entry.content === "string";
+      return typeof entry.id === "string" && (entry.role === "user" || entry.role === "assistant") && typeof entry.content === "string"
+        && (entry.language === undefined || (typeof entry.language === "string" && entry.language.trim().length >= 2 && entry.language.length <= 64 && !/[\r\n]/.test(entry.language)));
     });
 }
 

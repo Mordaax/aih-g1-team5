@@ -36,6 +36,8 @@ import { LANGUAGE_PROMPT, onboardingLanguages, needsLanguageSelection } from "@/
 
 import { recordingToWav } from "@/lib/recording-wav";
 import { startLiveTranscription, type LiveTranscription } from "@/lib/live-transcription";
+import { createSpeechPlayer, type PlaybackState } from "@/lib/speech-player";
+import { getSpeechLanguage } from "@/lib/speech-languages";
 
 import type { PreferredLanguage } from "@/lib/cx-agent";
 import { loadBrowserSession, saveBrowserSession, clearBrowserSession } from "@/lib/browser-session";
@@ -44,6 +46,7 @@ type ChatMessage = {
   id: string;
   role: "user" | "assistant";
   content: string;
+  language?: string;
 };
 
 type ChatError = {
@@ -69,12 +72,6 @@ const languageOptions: Array<{
   { value: "Tagalog", label: "Tagalog", shortLabel: "TL" },
   { value: "Bahasa Indonesia", label: "Bahasa Indonesia", shortLabel: "ID" },
 ];
-
-const ttsLocales: Record<string, string> = {
-  English: "en-SG",
-  Tagalog: "fil-PH",
-  "Bahasa Indonesia": "id-ID",
-};
 
 const topicCards: TopicCard[] = [
   {
@@ -147,48 +144,29 @@ function formatElapsed(seconds: number) {
   return `${minutes}:${remainingSeconds}`;
 }
 
-function waitForSpeechVoices() {
-  if (typeof window === "undefined" || !("speechSynthesis" in window)) {
-    return Promise.resolve<SpeechSynthesisVoice[]>([]);
-  }
-
-  const existingVoices = window.speechSynthesis.getVoices();
-  if (existingVoices.length) return Promise.resolve(existingVoices);
-
-  return new Promise<SpeechSynthesisVoice[]>((resolve) => {
-    let finished = false;
-    const finish = () => {
-      if (finished) return;
-      finished = true;
-      window.speechSynthesis.removeEventListener("voiceschanged", finish);
-      resolve(window.speechSynthesis.getVoices());
-    };
-
-    window.speechSynthesis.addEventListener("voiceschanged", finish);
-    window.setTimeout(finish, 1_200);
-  });
-}
-
 async function requestChat({
   message,
   sessionId,
   language,
   selectLanguage = false,
+  requestId,
 }: {
   message: string;
   sessionId: string;
   language: PreferredLanguage;
   selectLanguage?: boolean;
+  requestId: string;
 }) {
   const response = await fetch("/api/chat", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ message, sessionId, language, selectLanguage }),
+    body: JSON.stringify({ message, sessionId, language, selectLanguage, requestId }),
   });
 
   const data = (await response.json().catch(() => ({}))) as {
     message?: unknown;
     error?: unknown;
+    language?: unknown;
   };
 
   if (!response.ok) {
@@ -199,7 +177,7 @@ async function requestChat({
     );
   }
 
-  return typeof data.message === "string" ? data.message : "";
+  return {message: typeof data.message === "string" ? data.message : "", language: typeof data.language === "string" ? data.language : language};
 }
 
 export function MdwCompassChat() {
@@ -220,8 +198,11 @@ export function MdwCompassChat() {
   const [liveStatus, setLiveStatus] = useState<"connecting" | "live" | "fallback">("connecting");
   const liveTranscriptionRef = useRef<LiveTranscription | null>(null);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
-  const [speakingMessageId, setSpeakingMessageId] = useState<string | null>(null);
-  const [speechPaused, setSpeechPaused] = useState(false);
+  const [playback, setPlayback] = useState<PlaybackState>({messageId: null, status: "idle"});
+  const [readingVoice, setReadingVoice] = useState(0);
+  const [readingRate, setReadingRate] = useState(0.9);
+  const speechPlayerRef = useRef<ReturnType<typeof createSpeechPlayer> | null>(null);
+  const retryRequestIdRef = useRef("");
   const messagesViewportRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -229,7 +210,6 @@ export function MdwCompassChat() {
   const recordedChunksRef = useRef<Blob[]>([]);
   const discardRecordingRef = useRef(false);
   const preVoiceInputRef = useRef("");
-  const speechRequestRef = useRef(0);
   const requestGenerationRef = useRef(0);
 
   useEffect(() => {
@@ -290,8 +270,17 @@ export function MdwCompassChat() {
   }, [voiceState]);
 
   useEffect(() => {
+    let mounted = true;
+    const player = createSpeechPlayer({
+      onState: (state) => { if (mounted) setPlayback(state); },
+      onError: (message) => { if (mounted) setVoiceError(message); },
+    });
+    speechPlayerRef.current = player;
+    return () => { mounted = false; player.dispose(); speechPlayerRef.current = null; };
+  }, []);
+
+  useEffect(() => {
     return () => {
-      if ("speechSynthesis" in window) window.speechSynthesis.cancel();
       discardRecordingRef.current = true;
       liveTranscriptionRef.current?.cancel();
       mediaRecorderRef.current?.stop();
@@ -300,62 +289,20 @@ export function MdwCompassChat() {
   }, []);
 
   const stopSpeech = () => {
-    speechRequestRef.current += 1;
-    if (typeof window !== "undefined" && "speechSynthesis" in window) {
-      window.speechSynthesis.cancel();
-    }
-    setSpeakingMessageId(null);
-    setSpeechPaused(false);
+    speechPlayerRef.current?.stop();
   };
 
   const speakMessage = async (message: ChatMessage) => {
-    if (!("speechSynthesis" in window)) {
-      setVoiceError("Read-aloud is not available in this browser. The text response is still available.");
+    const player = speechPlayerRef.current;
+    if (!player) return;
+    if (playback.messageId === message.id) {
+      if (playback.status === "paused") await player.resume();
+      else if (playback.status === "playing") player.pause();
       return;
     }
-
-    if (speakingMessageId === message.id) {
-      if (window.speechSynthesis.paused) {
-        window.speechSynthesis.resume();
-        setSpeechPaused(false);
-      } else if (window.speechSynthesis.speaking) {
-        window.speechSynthesis.pause();
-        setSpeechPaused(true);
-      }
-      return;
-    }
-
-    stopSpeech();
-    const speechRequestId = speechRequestRef.current;
-    const locale = ttsLocales[language] || "en-SG";
-    const voices = await waitForSpeechVoices();
-    if (speechRequestId !== speechRequestRef.current) return;
-    const baseLocale = locale.split("-")[0].toLowerCase();
-    const voice = voices.find((item) => item.lang.toLowerCase() === locale.toLowerCase()) ||
-      voices.find((item) => item.lang.toLowerCase().startsWith(baseLocale));
-
-    if (!voice) {
-      setVoiceError(`A ${language} read-aloud voice is not available on this device. The text response is still available.`);
-      return;
-    }
-
-    const utterance = new SpeechSynthesisUtterance(message.content);
-    utterance.voice = voice;
-    utterance.lang = voice.lang;
-    utterance.onend = () => {
-      setSpeakingMessageId(null);
-      setSpeechPaused(false);
-    };
-    utterance.onerror = () => {
-      setSpeakingMessageId(null);
-      setSpeechPaused(false);
-      setVoiceError("Read-aloud could not start on this device. The text response is still available.");
-    };
-
     setVoiceError("");
-    setSpeakingMessageId(message.id);
-    setSpeechPaused(false);
-    window.speechSynthesis.speak(utterance);
+    const answerLanguage = message.language || language;
+    await player.play({messageId: message.id, text: message.content, language: answerLanguage, voice: getSpeechLanguage(answerLanguage)?.voices[readingVoice]?.id, rate: readingRate});
   };
 
   const sendMessage = async (text: string, isRetry = false) => {
@@ -367,6 +314,8 @@ export function MdwCompassChat() {
       return;
     }
     const generation = requestGenerationRef.current;
+    const requestId = isRetry && retryRequestIdRef.current ? retryRequestIdRef.current : createSessionId();
+    retryRequestIdRef.current = requestId;
 
     const activeSessionId = sessionId || createSessionId();
     if (!sessionId) setSessionId(activeSessionId);
@@ -378,17 +327,18 @@ export function MdwCompassChat() {
     if (!isRetry) {
       setMessages((current) => [
         ...current,
-        { id: `${Date.now()}-user`, role: "user", content: trimmedText },
+        { id: `${Date.now()}-user`, role: "user", content: trimmedText, language },
       ]);
     }
 
     setIsLoading(true);
 
     try {
-      const responseText = await requestChat({
+      const response = await requestChat({
         message: trimmedText,
         sessionId: activeSessionId,
         language,
+        requestId,
       });
 
       if (generation !== requestGenerationRef.current) return;
@@ -397,7 +347,7 @@ export function MdwCompassChat() {
       setVoiceState("idle");
       setMessages((current) => [
         ...current,
-        { id: `${Date.now()}-assistant`, role: "assistant", content: responseText },
+        { id: `${Date.now()}-assistant`, role: "assistant", content: response.message, language: response.language },
       ]);
     } catch (requestError) {
       if (generation !== requestGenerationRef.current) return;
@@ -422,15 +372,15 @@ export function MdwCompassChat() {
     setError(null);
 
     try {
-      const responseText = await requestChat({ message: nextLanguage, sessionId: activeSessionId, language: nextLanguage, selectLanguage: true });
+      const response = await requestChat({ message: nextLanguage, sessionId: activeSessionId, language: nextLanguage, selectLanguage: true, requestId: createSessionId() });
       if (generation !== requestGenerationRef.current) return;
       setLanguage(nextLanguage);
       setLanguageConfirmed(true);
-      if (responseText) {
+      if (response.message) {
         setMessages((current) => [
           ...current,
-          { id: `${Date.now()}-language-choice`, role: "user", content: nextLanguage },
-          { id: `${Date.now()}-language-sync`, role: "assistant", content: responseText },
+          { id: `${Date.now()}-language-choice`, role: "user", content: nextLanguage, language: nextLanguage },
+          { id: `${Date.now()}-language-sync`, role: "assistant", content: response.message, language: response.language },
         ]);
       }
     } catch (requestError) {
@@ -446,6 +396,7 @@ export function MdwCompassChat() {
 
   const handleLanguageChange = (nextLanguage: PreferredLanguage) => {
     if ((nextLanguage === language && languageConfirmed) || isBusy) return;
+    stopSpeech();
     setOtherLanguageOpen(false);
     setMenuOpen(false);
     void syncLanguage(nextLanguage);
@@ -509,6 +460,7 @@ export function MdwCompassChat() {
 
   const startRecording = async () => {
     if (!languageConfirmed || isLoading || voiceState === "recording" || voiceState === "transcribing") return;
+    stopSpeech();
     if (voiceState === "idle") preVoiceInputRef.current = input;
     setVoiceError("");
 
@@ -620,6 +572,7 @@ export function MdwCompassChat() {
     requestGenerationRef.current += 1;
     try { clearBrowserSession(window.localStorage); } catch { /* Storage may be disabled. */ }
     stopSpeech();
+    retryRequestIdRef.current = "";
     if (voiceState === "recording") stopRecording(true);
     setSessionId(createSessionId());
     setMessages(initialMessages);
@@ -635,6 +588,7 @@ export function MdwCompassChat() {
 
   const languageLabel = languageConfirmed ? (languageOptions.find((option) => option.value === language)?.label || language) : "Language";
   const isBusy = !sessionReady || isLoading || voiceState === "transcribing";
+  const readingLanguage = getSpeechLanguage(language);
 
   return (
     <main className={`chat-app ${!languageConfirmed ? "mobile-onboarding" : ""} min-h-[100dvh] overflow-x-hidden pb-[env(safe-area-inset-bottom)] text-[var(--ink)]`}>
@@ -674,11 +628,13 @@ export function MdwCompassChat() {
             <div className="flex min-h-0 flex-1 flex-col"><div className="min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-7 sm:py-7" ref={messagesViewportRef} aria-live="polite"><div className="mx-auto max-w-3xl space-y-5"><div className="chat-history"><div className="mb-6 flex items-center gap-3 text-xs text-[var(--muted)]"><span className="h-px flex-1 bg-[var(--line)]" /><span>Today</span><span className="h-px flex-1 bg-[var(--line)]" /></div>
 
               {messages.map((message, index) => {
-                const isSpeaking = speakingMessageId === message.id;
+                const isSpeaking = playback.messageId === message.id;
+                const speechPaused = playback.status === "paused";
+                const speechLoading = isSpeaking && playback.status === "loading";
                 return <ChatMessageRow key={message.id} message={message} animate={sessionReady && index === messages.length - 1}>
                   {message.role === "assistant" && message.id !== "language-welcome" && <div className="mt-1 flex items-center gap-1">
-                    <button type="button" onClick={() => void speakMessage(message)} aria-label={isSpeaking ? (speechPaused ? "Resume response" : "Pause response") : "Listen to response"} className="inline-flex min-h-11 items-center gap-2 rounded-lg px-2 text-xs text-[var(--primary)] hover:bg-[var(--accent)]">
-                      {isSpeaking ? (speechPaused ? <Play aria-hidden="true" className="h-4 w-4" /> : <Pause aria-hidden="true" className="h-4 w-4" />) : <Volume2 aria-hidden="true" className="h-4 w-4" />}<span>{isSpeaking ? (speechPaused ? "Resume" : "Pause") : "Listen"}</span>
+                    <button type="button" onClick={() => void speakMessage(message)} disabled={speechLoading || voiceState === "recording"} aria-label={speechLoading ? "Loading audio" : isSpeaking ? (speechPaused ? "Resume response" : "Pause response") : "Listen to response"} className="inline-flex min-h-11 items-center gap-2 rounded-lg px-2 text-xs text-[var(--primary)] hover:bg-[var(--accent)] focus-visible:outline-2 focus-visible:outline-[var(--primary)] disabled:opacity-60">
+                      {speechLoading ? <LoaderCircle aria-hidden="true" className="h-4 w-4 animate-spin" /> : isSpeaking ? (speechPaused ? <Play aria-hidden="true" className="h-4 w-4" /> : <Pause aria-hidden="true" className="h-4 w-4" />) : <Volume2 aria-hidden="true" className="h-4 w-4" />}<span>{speechLoading ? "Loading audio…" : isSpeaking ? (speechPaused ? "Resume" : "Pause") : "Listen"}</span>
                     </button>
                     {isSpeaking && <button type="button" onClick={stopSpeech} aria-label="Stop response" className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg text-[var(--primary)] hover:bg-[var(--accent)]"><VolumeX aria-hidden="true" className="h-4 w-4" /></button>}
                   </div>}
@@ -705,6 +661,13 @@ export function MdwCompassChat() {
               </div></div>
 
               <div className="chat-composer safe-bottom border-t border-[var(--line)] bg-[var(--surface)] px-4 pb-4 pt-3 sm:px-7 sm:pt-4"><div className="mx-auto max-w-3xl">
+                {languageConfirmed && <details className="mb-2 text-sm text-[var(--muted)]">
+                  <summary className="min-h-11 cursor-pointer py-3 font-medium text-[var(--primary)] focus-visible:outline-2 focus-visible:outline-[var(--primary)]">Read-aloud settings</summary>
+                  <div className="flex flex-wrap gap-3 pb-3">
+                    <label className="min-w-0 flex-1"><span className="mb-1 block text-xs">Reading voice</span><select aria-label="Reading voice" value={readingVoice} disabled={!readingLanguage} onChange={event => { stopSpeech(); setReadingVoice(Number(event.target.value)); }} className="min-h-11 w-full rounded-lg border border-[var(--line)] bg-[var(--surface)] px-3 text-base text-[var(--ink)] focus-visible:outline-2 focus-visible:outline-[var(--primary)]">{readingLanguage ? readingLanguage.voices.map((voice,index) => <option key={voice.id} value={index}>{voice.label}</option>) : <option value={0}>Voice unavailable</option>}</select></label>
+                    <label className="min-w-0 flex-1"><span className="mb-1 block text-xs">Reading speed</span><select aria-label="Reading speed" value={readingRate} onChange={event => { stopSpeech(); setReadingRate(Number(event.target.value)); }} className="min-h-11 w-full rounded-lg border border-[var(--line)] bg-[var(--surface)] px-3 text-base text-[var(--ink)] focus-visible:outline-2 focus-visible:outline-[var(--primary)]"><option value={0.8}>Slower · 0.8×</option><option value={0.9}>Gentle pace · 0.9×</option><option value={1}>Normal · 1×</option><option value={1.1}>Faster · 1.1×</option></select></label>
+                  </div>
+                </details>}
                 {voiceState === "recording" && <div className="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[var(--danger-line)] bg-[var(--danger-surface)] px-3.5 py-3 text-sm text-[var(--danger)]" role="status"><div className="flex items-center gap-2"><span className="h-2.5 w-2.5 animate-pulse rounded-full bg-[var(--danger-solid)]" /><span className="font-bold">Recording {formatElapsed(recordingSeconds)}</span><span className="text-xs">{liveStatus === "live" ? "Live words appear below. Stop to review." : liveStatus === "connecting" ? "Connecting live transcription…" : "Live unavailable. Transcription starts when you stop."}</span></div><div className="flex gap-2"><button type="button" onClick={() => stopRecording(false)} className="inline-flex min-h-11 items-center gap-1.5 rounded-xl bg-[var(--danger-solid)] px-3 text-xs font-bold text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--danger)]"><Square aria-hidden="true" className="h-3.5 w-3.5 fill-current" />Stop</button><button type="button" onClick={cancelVoice} className="inline-flex min-h-11 items-center gap-1.5 rounded-xl border border-[var(--danger-line)] px-3 text-xs font-bold text-[var(--danger)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--danger)]"><X aria-hidden="true" className="h-3.5 w-3.5" />Cancel</button></div></div>}
                 {voiceState === "transcribing" && <div className="mb-3 flex items-center gap-2 rounded-lg border border-[var(--line)] bg-[var(--surface-muted)] px-3.5 py-3 text-sm text-[var(--primary)]" role="status"><LoaderCircle aria-hidden="true" className="h-4 w-4 animate-spin" />Finishing your transcript. You can review it before sending.</div>}
                 {voiceState === "review" && <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--line)] bg-[var(--surface-muted)] px-3.5 py-3 text-sm text-[var(--primary)]" role="status"><span className="font-bold">Review your transcript before sending.</span><div className="flex gap-2"><button type="button" onClick={() => void startRecording()} disabled={isBusy} className="inline-flex min-h-10 items-center gap-1.5 rounded-xl border border-[var(--line)] px-3 text-xs font-bold"><Mic aria-hidden="true" className="h-3.5 w-3.5" />Re-record</button><button type="button" onClick={cancelVoice} className="inline-flex min-h-10 items-center gap-1.5 rounded-xl px-3 text-xs font-bold"><X aria-hidden="true" className="h-3.5 w-3.5" />Cancel</button></div></div>}

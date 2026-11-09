@@ -60,3 +60,15 @@ test('blocked or full browser storage leaves in-memory chat usable', () => {
   assert.equal(saveBrowserSession(blocked, session, now), false);
   assert.equal(clearBrowserSession(blocked), false);
 });
+
+test('per-answer language survives refresh and malformed language metadata is discarded', () => {
+  const browser=storage();
+  const saved={...session,messages:[{id:'a-th',role:'assistant',content:'สวัสดี',language:'Thai'}]};
+  saveBrowserSession(browser,saved,now);
+  assert.equal(loadBrowserSession(browser,now+1000).messages[0].language,'Thai');
+  const key=[...browser.values.keys()][0];
+  const corrupt=JSON.parse(browser.getItem(key));
+  corrupt.messages[0].language={name:'Thai'};
+  browser.setItem(key,JSON.stringify(corrupt));
+  assert.equal(loadBrowserSession(browser,now+1000),null);
+});
