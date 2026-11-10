@@ -1,3 +1,5 @@
+import { extractAnswerSources } from "./answer-sources.ts";
+
 export type PlaybackState = { messageId: string | null; status: "idle" | "loading" | "playing" | "paused" };
 type SpeechInput = {messageId: string; text: string; language: string; voice?: string; rate?: number};
 
@@ -36,16 +38,18 @@ export function createSpeechPlayer(options: {
     stop,
     async play(input: SpeechInput) {
       stop();
+      const text = extractAnswerSources(input.text).text;
+      if (!text) return;
       const id = generation;
       abort = new AbortController();
       emit({messageId: input.messageId, status: "loading"});
-      const key = JSON.stringify([input.text, input.language, input.voice, input.rate]);
+      const key = JSON.stringify([text, input.language, input.voice, input.rate]);
       try {
         let blob = cache.get(key);
         if (!blob) {
           const response = await (options.fetch || fetch)("/api/speech", {
             method: "POST", headers: {"Content-Type": "application/json"},
-            body: JSON.stringify({text: input.text, language: input.language, voice: input.voice, rate: input.rate}),
+            body: JSON.stringify({text, language: input.language, voice: input.voice, rate: input.rate}),
             signal: abort.signal,
           });
           if (id !== generation) return;

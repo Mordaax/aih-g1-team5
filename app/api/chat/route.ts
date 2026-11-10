@@ -107,6 +107,7 @@ export async function POST(request: Request) {
       message: result.message,
       outputCount: result.outputCount,
       language: result.language,
+      ...(result.sources?.length ? {sources: result.sources} : {}),
     });
   } catch (error) {
     if (error instanceof TranslationError) {

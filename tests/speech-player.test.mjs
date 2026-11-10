@@ -12,6 +12,25 @@ function harness(fetcher=async()=>new Response(new Blob(['mp3'],{type:'audio/mpe
 }
 const input={messageId:'answer-th',text:'สวัสดี',language:'Thai',rate:0.9};
 
+test('read-aloud excludes inline URLs and the source list while retaining advice and phone numbers', async () => {
+  let payload;
+  const h=harness(async (_url, options) => {
+    payload=JSON.parse(options.body);
+    return new Response(new Blob(['audio']),{headers:{'Content-Type':'audio/mpeg'}});
+  });
+  await h.player.play({...input,language:'English',text:'Call 6438 5122. Read [MOM guidance](https://www.mom.gov.sg/help).\n\nSources:\nhttps://www.home.org.sg/'});
+  assert.equal(payload.text,'Call 6438 5122. Read MOM guidance.');
+  assert.doesNotMatch(payload.text,/https|www\.|Sources:/);
+});
+
+test('a source-only message does not send an empty synthesis request', async () => {
+  let calls=0;
+  const h=harness(async () => { calls++; throw new Error('Should not synthesize a link'); });
+  await h.player.play({...input,text:'Sources:\nhttps://www.mom.gov.sg/'});
+  assert.equal(calls,0);
+  assert.equal(h.states.at(-1).status,'idle');
+});
+
 test('audio uses the answer language, pauses/resumes, and releases its URL on stop',async()=>{
   let payload;
   const h=harness(async(url,options)=>{assert.equal(url,'/api/speech');payload=JSON.parse(options.body);return new Response(new Blob(['audio']),{headers:{'Content-Type':'audio/mpeg'}});});

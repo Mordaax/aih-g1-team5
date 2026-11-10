@@ -2,6 +2,21 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createTranslatedChat } from '../lib/translated-chat.ts';
 
+test('source URLs survive translation unchanged and never enter the translated answer text', async () => {
+  const chat = createTranslatedChat({
+    run: async () => ({message:'You can ask MOM for help.\n\nSources:\n[MOM contact](https://www.mom.gov.sg/contact-us?lang=en)',outputCount:1}),
+    selectLanguage: async () => { throw new Error('Unexpected onboarding'); },
+    translate: async ({text,targetLanguage}) => {
+      if (targetLanguage === 'English') return 'Where can I get help?';
+      assert.equal(text, 'You can ask MOM for help.');
+      return 'คุณสามารถขอความช่วยเหลือจาก MOM ได้';
+    },
+  });
+  const result = await chat({message:'ขอความช่วยเหลือ',language:'Thai',sessionId:'source-test',requestId:'source-1'});
+  assert.equal(result.message, 'คุณสามารถขอความช่วยเหลือจาก MOM ได้');
+  assert.deepEqual(result.sources, [{title:'MOM contact',url:'https://www.mom.gov.sg/contact-us?lang=en'}]);
+});
+
 test('Thai questions reach CX in English and only Thai answers return to the website', async () => {
   const calls = [];
   const chat = createTranslatedChat({

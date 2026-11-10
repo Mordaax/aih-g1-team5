@@ -41,12 +41,14 @@ import { getSpeechLanguage } from "@/lib/speech-languages";
 
 import type { PreferredLanguage } from "@/lib/cx-agent";
 import { loadBrowserSession, saveBrowserSession, clearBrowserSession } from "@/lib/browser-session";
+import { normalizeSources, type SourceLink } from "@/lib/answer-sources";
 
 type ChatMessage = {
   id: string;
   role: "user" | "assistant";
   content: string;
   language?: string;
+  sources?: SourceLink[];
 };
 
 type ChatError = {
@@ -167,6 +169,7 @@ async function requestChat({
     message?: unknown;
     error?: unknown;
     language?: unknown;
+    sources?: unknown;
   };
 
   if (!response.ok) {
@@ -177,7 +180,7 @@ async function requestChat({
     );
   }
 
-  return {message: typeof data.message === "string" ? data.message : "", language: typeof data.language === "string" ? data.language : language};
+  return {message: typeof data.message === "string" ? data.message : "", language: typeof data.language === "string" ? data.language : language, sources: normalizeSources(data.sources)};
 }
 
 export function MdwCompassChat() {
@@ -347,7 +350,7 @@ export function MdwCompassChat() {
       setVoiceState("idle");
       setMessages((current) => [
         ...current,
-        { id: `${Date.now()}-assistant`, role: "assistant", content: response.message, language: response.language },
+        { id: `${Date.now()}-assistant`, role: "assistant", content: response.message, language: response.language, sources: response.sources },
       ]);
     } catch (requestError) {
       if (generation !== requestGenerationRef.current) return;
@@ -380,7 +383,7 @@ export function MdwCompassChat() {
         setMessages((current) => [
           ...current,
           { id: `${Date.now()}-language-choice`, role: "user", content: nextLanguage, language: nextLanguage },
-          { id: `${Date.now()}-language-sync`, role: "assistant", content: response.message, language: response.language },
+          { id: `${Date.now()}-language-sync`, role: "assistant", content: response.message, language: response.language, sources: response.sources },
         ]);
       }
     } catch (requestError) {

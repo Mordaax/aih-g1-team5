@@ -1,5 +1,6 @@
 import { SpeechError, synthesizeSpeech } from "@/lib/azure-speech";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { extractAnswerSources } from "@/lib/answer-sources";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -20,11 +21,13 @@ export async function POST(request: Request) {
     body = parsed as Record<string, unknown>;
   } catch { return errorResponse("Please send valid speech settings.", 400); }
   if (typeof body.text !== "string" || typeof body.language !== "string" || (body.voice !== undefined && typeof body.voice !== "string") || (body.rate !== undefined && typeof body.rate !== "number")) return errorResponse("Please send text and a supported language.", 400);
+  const text = extractAnswerSources(body.text).text;
+  if (!text) return errorResponse("There is no answer text to read aloud.", 400);
   // Azure F0 allows 20 synthesis transactions per minute; Azure enforces its resource quota across instances.
   const limit = checkRateLimit("azure-speech:f0", 20);
   if (!limit.allowed) return errorResponse("Read-aloud is busy. Please wait a minute and try again.", 429);
   try {
-    const bytes = await synthesizeSpeech({text: body.text, language: body.language, voice: body.voice as string | undefined, rate: body.rate as number | undefined, signal: request.signal});
+    const bytes = await synthesizeSpeech({text, language: body.language, voice: body.voice as string | undefined, rate: body.rate as number | undefined, signal: request.signal});
     return new Response(Buffer.from(bytes), {headers: {"Content-Type": "audio/mpeg", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff"}});
   } catch (error) {
     if (error instanceof SpeechError) return errorResponse(error.message, error.code === "VALIDATION" ? 400 : error.code === "RATE_LIMIT" ? 429 : error.code === "CONFIGURATION" || error.code === "AUTHENTICATION" ? 503 : 502);

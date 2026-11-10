@@ -17,6 +17,13 @@ test('refresh restores the same CX session, language, messages, and reviewed dra
   assert.equal(saveBrowserSession(browser, session, now), true);
   assert.deepEqual(loadBrowserSession(browser, now + 60_000), session);
 });
+
+test('source links remain attached to their answer after refreshing', () => {
+  const browser = storage();
+  const saved = {...session,messages:[{id:'answer',role:'assistant',content:'Ask MOM for help.',sources:[{title:'MOM',url:'https://www.mom.gov.sg/contact-us'}]}]};
+  saveBrowserSession(browser,saved,now);
+  assert.deepEqual(loadBrowserSession(browser,now+1000).messages,saved.messages);
+});
 test('expired conversations are removed rather than restored', () => {
   const browser = storage();
   saveBrowserSession(browser, session, now);

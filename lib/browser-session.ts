@@ -1,4 +1,6 @@
-export type SavedMessage = { id: string; role: "user" | "assistant"; content: string; language?: string };
+import type { SourceLink } from "./answer-sources.ts";
+
+export type SavedMessage = { id: string; role: "user" | "assistant"; content: string; language?: string; sources?: SourceLink[] };
 export type BrowserSession = {
   sessionId: string;
   language: string;

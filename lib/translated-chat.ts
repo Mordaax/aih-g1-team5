@@ -1,3 +1,5 @@
+import { extractAnswerSources } from "./answer-sources.ts";
+
 type SessionInput = { message: string; sessionId: string; language: string };
 type SessionResult = { message: string; outputCount: number };
 export type TranslationInput = { text: string; sourceLanguage: string; targetLanguage: string };
@@ -38,7 +40,9 @@ export function createTranslatedChat(dependencies: {
     }
     const result = await turn.result;
     if (!result.message.trim()) throw new Error("The assistant did not return a text response. Please try again.");
-    const message = english ? result.message : await dependencies.translate({text: result.message, sourceLanguage: "English", targetLanguage: language});
-    return {...result, message, language};
+    // URLs travel separately so translation cannot alter them or read them aloud.
+    const answer = extractAnswerSources(result.message);
+    const message = english || !answer.text ? answer.text : await dependencies.translate({text: answer.text, sourceLanguage: "English", targetLanguage: language});
+    return {...result, message, language, ...(answer.sources.length ? {sources: answer.sources} : {})};
   };
 }
